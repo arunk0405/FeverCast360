@@ -23,5 +23,8 @@ streamlit-folium>=0.25.0
 # API Requests for boundary data
 requests>=2.31.0
 
+# Geocoding
+geopy>=2.4.0
+
 # Data validation
 openpyxl>=3.0.0
