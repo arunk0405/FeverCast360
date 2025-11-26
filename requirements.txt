@@ -1,0 +1,27 @@
+# FeverCast360 Requirements
+# Core ML and Data Processing
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+joblib>=1.2.0
+matplotlib>=3.6.0
+
+# Optional: XGBoost for advanced ML
+xgboost>=1.7.0
+
+# Streamlit Dashboard
+streamlit>=1.28.0
+plotly>=5.14.0
+
+# Firebase Integration
+firebase-admin>=6.0.0
+
+# Leaflet Map Integration
+folium>=0.20.0
+streamlit-folium>=0.25.0
+
+# API Requests for boundary data
+requests>=2.31.0
+
+# Data validation
+openpyxl>=3.0.0

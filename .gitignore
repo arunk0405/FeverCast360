@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Firebase credentials (NEVER commit these!)
+*firebase-adminsdk*.json
+serviceAccountKey.json
+*.json.backup
+
+# SQLite databases (obsolete)
+*.db
+*.sqlite
+*.sqlite3
+
+# ML Models and Outputs
+models/*.pkl
+models/*.joblib
+outputs/*.csv
+outputs/plots/*.png
+
+# Temporary files
+tmp_*.csv
+temp_*.csv
+*.tmp
+*.cache
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Keep sample data
+!fevercast360_sample_dataset.csv
+
+# Keep model directories but not contents
+!models/.gitkeep
+!outputs/.gitkeep
+!outputs/plots/.gitkeep
