@@ -1,26 +1,26 @@
-accuracy: 0.4666666666666667
-f1_macro: 0.34848484848484845
-f1_weighted: 0.41818181818181815
+accuracy: 0.4
+f1_macro: 0.3333333333333333
+f1_weighted: 0.4
 
 CLASSIFICATION REPORT
               precision    recall  f1-score   support
 
-      Dengue       0.40      0.67      0.50         6
-     Typhoid       0.60      0.50      0.55         6
-       Viral       0.00      0.00      0.00         3
+      Dengue       0.50      0.50      0.50         2
+     Typhoid       0.00      0.00      0.00         1
+       Viral       0.50      0.50      0.50         2
 
-    accuracy                           0.47        15
-   macro avg       0.33      0.39      0.35        15
-weighted avg       0.40      0.47      0.42        15
+    accuracy                           0.40         5
+   macro avg       0.33      0.33      0.33         5
+weighted avg       0.40      0.40      0.40         5
 
 model: RandomForest
 
 
 JSON:
 {
-  "accuracy": 0.4666666666666667,
-  "f1_macro": 0.34848484848484845,
-  "f1_weighted": 0.41818181818181815,
-  "report": "              precision    recall  f1-score   support\n\n      Dengue       0.40      0.67      0.50         6\n     Typhoid       0.60      0.50      0.55         6\n       Viral       0.00      0.00      0.00         3\n\n    accuracy                           0.47        15\n   macro avg       0.33      0.39      0.35        15\nweighted avg       0.40      0.47      0.42        15\n",
+  "accuracy": 0.4,
+  "f1_macro": 0.3333333333333333,
+  "f1_weighted": 0.4,
+  "report": "              precision    recall  f1-score   support\n\n      Dengue       0.50      0.50      0.50         2\n     Typhoid       0.00      0.00      0.00         1\n       Viral       0.50      0.50      0.50         2\n\n    accuracy                           0.40         5\n   macro avg       0.33      0.33      0.33         5\nweighted avg       0.40      0.40      0.40         5\n",
   "model": "RandomForest"
 }
