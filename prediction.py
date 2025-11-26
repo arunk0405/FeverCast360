@@ -449,6 +449,8 @@ def main():
     print(f"  - {os.path.join(cfg.output_dir, 'plots')}")
 
 
+
+
 def run_pipeline(input_csv: str, models_dir="models", output_dir="outputs"):
     """
     A reusable wrapper so Streamlit can call ML pipeline directly.
@@ -465,4 +467,110 @@ def run_pipeline(input_csv: str, models_dir="models", output_dir="outputs"):
         main()
     finally:
         sys.argv = argv_backup
+
+
+def run_pipeline_and_return(input_csv: str, models_dir="models", output_dir="outputs", 
+                            threshold=0.5, use_xgboost=False):
+    """
+    Run the ML pipeline and return the predictions DataFrame.
+    This is used by Streamlit to get predictions without reading from file.
+    
+    Parameters
+    ----------
+    input_csv : str
+        Path to input CSV file
+    models_dir : str
+        Directory to save models
+    output_dir : str
+        Directory to save outputs
+    threshold : float
+        Stage 1 threshold (default: 0.5)
+    use_xgboost : bool
+        Whether to use XGBoost (default: False)
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: Region, P_Outbreak, Fever_Type, P_Type, Severity_Index
+    """
+    # Create config
+    cfg = Config(
+        input_path=input_csv,
+        models_dir=models_dir,
+        output_dir=output_dir,
+        region_col="Region",
+        label_outbreak="outbreak_label",
+        label_type="fever_type",
+        threshold=threshold,
+        use_xgboost=use_xgboost,
+        test_size=0.2,
+        random_state=42,
+    )
+
+    ensure_dirs(cfg)
+
+    # Load data
+    df = pd.read_csv(cfg.input_path)
+    missing_cols = [c for c in [cfg.region_col, cfg.label_outbreak, cfg.label_type] if c not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Input CSV missing required columns: {missing_cols}")
+
+    # Feature discovery
+    num_cols, cat_cols = split_features(df, cfg)
+    if not num_cols and not cat_cols:
+        raise ValueError("No feature columns detected. Ensure your CSV has columns besides region/labels.")
+
+    preprocessor = build_preprocessor(num_cols, cat_cols)
+
+    # Stage 1 — train on all rows with outbreak label available
+    df_stage1 = df.dropna(subset=[cfg.label_outbreak]).copy()
+    X1 = df_stage1[num_cols + cat_cols]
+    y1 = df_stage1[cfg.label_outbreak].astype(int)
+
+    pipe_stage1, m1 = train_stage1_logreg(X1, y1, preprocessor, cfg)
+    joblib.dump(pipe_stage1, os.path.join(cfg.models_dir, "outbreak_model.pkl"))
+    save_metrics(m1, os.path.join(cfg.output_dir, "metrics_stage1.txt"))
+
+    # Stage 2 — prefer rows with outbreak_label == 1; fallback to all fever_type rows
+    df_ft = df[df[cfg.label_outbreak] == 1] if df[cfg.label_outbreak].notna().any() else df
+    df_ft = df_ft.dropna(subset=[cfg.label_type]).copy()
+
+    if len(df_ft) < 20:
+        df_ft = df.dropna(subset=[cfg.label_type]).copy()
+
+    if len(df_ft) < 10:
+        raise ValueError("Not enough labeled rows to train Stage 2 classifier.")
+
+    X2 = df_ft[num_cols + cat_cols]
+    y2 = df_ft[cfg.label_type].astype(str)
+
+    preprocessor2 = build_preprocessor(num_cols, cat_cols)
+    pipe_stage2, m2, _ = train_stage2_classifier(X2, y2, preprocessor2, cfg)
+    joblib.dump(pipe_stage2, os.path.join(cfg.models_dir, "fever_type_model.pkl"))
+    save_metrics(m2, os.path.join(cfg.output_dir, "metrics_stage2.txt"))
+
+    # Final predictions on the WHOLE dataset
+    X_all = df[num_cols + cat_cols]
+    final_df = make_final_predictions(
+        df[[cfg.region_col]].join(X_all),
+        region_col=cfg.region_col,
+        pipe_stage1=pipe_stage1,
+        pipe_stage2=pipe_stage2,
+        threshold=cfg.threshold,
+    )
+
+    # Save to CSV
+    out_csv = os.path.join(cfg.output_dir, "predicted_output.csv")
+    final_df.to_csv(out_csv, index=False)
+
+    # Write readme
+    write_quick_readme(cfg, os.path.join(cfg.output_dir, "readme.txt"))
+
+    print("\n✅ Pipeline completed successfully!")
+    print(f"  - Models saved to: {cfg.models_dir}/")
+    print(f"  - Predictions saved to: {out_csv}")
+    
+    # Return the DataFrame for Streamlit
+    return final_df
+
 

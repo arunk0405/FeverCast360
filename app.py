@@ -1000,74 +1000,78 @@ with public_tab:
                 if severity >= 0.4:
                     risk_level = "HIGH RISK"
                     risk_color = "#EF4444"
+                    risk_bg = "#FEE2E2"
                     risk_icon = "🔴"
                     advice = "High risk detected. Take immediate precautions and seek medical help if symptomatic."
                 elif severity >= 0.2:
                     risk_level = "MODERATE RISK"
                     risk_color = "#F59E0B"
+                    risk_bg = "#FEF3C7"
                     risk_icon = "🟡"
                     advice = "Moderate risk level. Be vigilant and follow preventive measures."
                 else:
                     risk_level = "LOW RISK"
                     risk_color = "#10B981"
+                    risk_bg = "#D1FAE5"
                     risk_icon = "🟢"
                     advice = "Low risk currently. Continue following regular hygiene practices."
                 
-                st.markdown(f"""
-                <div style='background-color: white; padding: 2rem; border-radius: 12px; 
-                            border: 2px solid {risk_color}; margin: 1rem 0;'>
-                    <div style='text-align: center; margin-bottom: 1.5rem;'>
-                        <h2 style='color: #111827; margin: 0;'>{city}</h2>
-                        <div style='background-color: {risk_color}; color: white; display: inline-block; 
-                                    padding: 8px 20px; border-radius: 20px; margin-top: 10px; font-weight: 600;'>
-                            {risk_icon} {risk_level}
-                        </div>
-                    </div>
-                    
-                    <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;'>
-                        <div style='background-color: #F9FAFB; padding: 1rem; border-radius: 8px;'>
-                            <div style='color: #6B7280; font-size: 14px;'>Outbreak Probability</div>
-                            <div style='color: #111827; font-size: 28px; font-weight: 700;'>{rec['p_outbreak']:.1%}</div>
-                        </div>
-                        <div style='background-color: #F9FAFB; padding: 1rem; border-radius: 8px;'>
-                            <div style='color: #6B7280; font-size: 14px;'>Severity Index</div>
-                            <div style='color: #111827; font-size: 28px; font-weight: 700;'>{severity:.2f}</div>
-                        </div>
-                    </div>
-                    
-                    <div style='background-color: #F9FAFB; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;'>
-                        <div style='color: #6B7280; font-size: 14px; margin-bottom: 4px;'>Detected Fever Type</div>
-                        <div style='color: #111827; font-size: 20px; font-weight: 600;'>{rec['fever_type']}</div>
-                        <div style='color: #6B7280; font-size: 14px; margin-top: 4px;'>
-                            Confidence: {rec['p_type']:.1%}
-                        </div>
-                    </div>
-                    
-                    <div style='background-color: {risk_color}15; padding: 1rem; border-radius: 8px; 
-                                border-left: 4px solid {risk_color};'>
-                        <strong style='color: #111827;'>Health Advisory:</strong><br>
-                        <span style='color: #374151;'>{advice}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                # Display results using Streamlit components
+                st.markdown(f"<h2 style='text-align: center; color: #111827;'>{city}</h2>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; background-color: {risk_color}; color: white; "
+                          f"padding: 8px 20px; border-radius: 20px; margin: 10px auto; font-weight: 600; "
+                          f"display: inline-block; width: fit-content;'>{risk_icon} {risk_level}</div>", 
+                          unsafe_allow_html=True)
+                
+                st.markdown("---")
+                
+                # Metrics in columns
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Outbreak Probability", f"{rec['p_outbreak']:.1%}")
+                with col2:
+                    st.metric("Severity Index", f"{severity:.2f}")
+                
+                st.markdown("---")
+                
+                # Fever Type Info
+                st.markdown("**Detected Fever Type**")
+                st.info(f"🦠 {rec['fever_type']} (Confidence: {rec['p_type']:.1%})")
+                
+                # Health Advisory
+                st.markdown("**Health Advisory**")
+                if severity >= 0.4:
+                    st.error(f"⚠️ {advice}")
+                elif severity >= 0.2:
+                    st.warning(f"⚠️ {advice}")
+                else:
+                    st.success(f"✅ {advice}")
             else:
                 st.warning(f"⚠️ No data available for '{city}'. Please check spelling or try another location.")
                 
     with colB:
         st.markdown("### 📍 Quick Access")
-        if st.button("🎯 Detect My Location", type="primary", width="stretch"):
-            # Get the first available city from database as demo
-            all_predictions = fetch_all_predictions()
-            if not all_predictions.empty:
-                demo_city = all_predictions.iloc[0]['region']
-                rec = fetch_city_prediction(demo_city)
-                if rec:
-                    st.success(f"📍 Location detected: {demo_city}")
-                    st.info("Check the search results on the left")
-                else:
-                    st.info("No data available for detected location.")
+        
+        # Show location info if a city was searched
+        if city and 'rec' in locals():
+            st.success(f"📍 Location detected: {city}")
+            st.info("Check the search results on the left")
+        else:
+            st.info("Enter a city name on the left to check risk levels")
+        
+        # Show top high-risk locations
+        st.markdown("---")
+        st.markdown("**🔥 High Risk Areas**")
+        all_predictions = fetch_all_predictions()
+        if not all_predictions.empty:
+            high_risk = all_predictions[all_predictions['severity_index'] >= 0.4].head(3)
+            if not high_risk.empty:
+                for _, row in high_risk.iterrows():
+                    st.caption(f"🔴 {row['region']}")
             else:
-                st.info("No prediction data available. Please run the ML Pipeline first.")
+                st.caption("No high-risk areas currently")
+        else:
+            st.caption("No data available")
 
     st.markdown("### Understanding Risk Levels")
     r1, r2, r3 = st.columns(3)
