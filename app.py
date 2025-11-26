@@ -366,6 +366,46 @@ if 'show_ml_pipeline' not in st.session_state:
 # ML PIPELINE OVERLAY (Appears above dashboard)
 # ----------------------
 if st.session_state.get('show_ml_pipeline', False):
+    # Add custom CSS for white-colored components
+    st.markdown("""
+    <style>
+    /* Override Streamlit's default button styling for all buttons */
+    button[kind="secondary"] {
+        background-color: white !important;
+        color: #43e97b !important;
+        border: 2px solid white !important;
+    }
+    button[kind="secondary"]:hover {
+        background-color: #f0f0f0 !important;
+        color: #38f9d7 !important;
+    }
+    
+    /* Style file uploader */
+    [data-testid="stFileUploader"] {
+        background: transparent !important;
+    }
+    [data-testid="stFileUploader"] section {
+        border: 2px dashed rgba(255, 255, 255, 0.8) !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stFileUploader"] button {
+        background-color: white !important;
+        color: #667eea !important;
+        border: none !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stFileUploader"] button:hover {
+        background-color: #f0f0f0 !important;
+    }
+    [data-testid="stFileUploader"] label,
+    [data-testid="stFileUploader"] small,
+    [data-testid="stFileUploader"] p {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Use a container to separate ML Pipeline from the rest of the page
     st.markdown("---")
     
@@ -402,10 +442,11 @@ if st.session_state.get('show_ml_pipeline', False):
     
     with col1:
         st.markdown("""
-        <div style='background-color: white; padding: 1.5rem; border-radius: 10px; 
-                    border: 2px dashed #3B82F6; margin-bottom: 1rem;'>
-            <h4 style='margin: 0 0 8px 0; color: #1E40AF;'>📁 Upload Data File</h4>
-            <p style='margin: 0 0 12px 0; color: #374151; font-size: 14px;'>
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 1.5rem; border-radius: 10px; 
+                    border: 2px dashed rgba(255, 255, 255, 0.5); margin-bottom: 1rem;'>
+            <h4 style='margin: 0 0 8px 0; color: white;'>📁 Upload Data File</h4>
+            <p style='margin: 0 0 12px 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;'>
                 Select your preprocessed CSV file for ML analysis
             </p>
         """, unsafe_allow_html=True)
