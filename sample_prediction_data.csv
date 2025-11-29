@@ -1,0 +1,17 @@
+State,District,Year,Month,Temperature,Humidity,Rainfall,Sanitation_Score,Population_Density
+Karnataka,Bengaluru,2025,1,26.0,68,10.0,0.87,4200
+Karnataka,Bengaluru,2025,2,27.5,72,7.5,0.87,4200
+Karnataka,Mysuru,2025,1,25.5,70,12.0,0.78,2600
+Karnataka,Mysuru,2025,2,26.8,74,9.5,0.78,2600
+Tamil Nadu,Chennai,2025,1,29.0,76,40.0,0.82,6200
+Tamil Nadu,Chennai,2025,2,29.8,80,35.0,0.82,6200
+Tamil Nadu,Coimbatore,2025,1,27.0,72,30.0,0.80,3600
+Tamil Nadu,Coimbatore,2025,2,28.2,75,25.5,0.80,3600
+Maharashtra,Mumbai,2025,1,28.0,74,12.0,0.85,8200
+Maharashtra,Mumbai,2025,2,29.2,77,10.5,0.85,8200
+Maharashtra,Pune,2025,1,25.0,70,15.0,0.82,5700
+Maharashtra,Pune,2025,2,26.5,72,12.5,0.82,5700
+Kerala,Kochi,2025,1,28.0,80,22.0,0.90,3900
+Kerala,Kochi,2025,2,28.8,82,20.0,0.90,3900
+West Bengal,Kolkata,2025,1,26.0,77,12.0,0.75,7400
+West Bengal,Kolkata,2025,2,28.2,80,15.5,0.75,7400

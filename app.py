@@ -20,7 +20,8 @@ import time
 from datetime import datetime, timezone
 import os
 
-import prediction   # your prediction.py (must expose run_pipeline_and_return)
+import prediction   # your original prediction.py
+import prediction_enhanced  # new enhanced prediction module
 from db_utils import (
     init_db, save_predictions, fetch_all_predictions, fetch_city_prediction,
     upsert_region_metadata, upsert_pharma_stock, get_region_metadata
@@ -421,295 +422,528 @@ if st.session_state.get('show_ml_pipeline', False):
                 padding: 2rem; border-radius: 12px 12px 0 0; margin: -1rem -1rem 1rem -1rem;'>
         <h1 style='color: white; margin: 0; font-size: 32px;'>⚙️ ML Pipeline Control Center</h1>
         <p style='color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 16px;'>
-            Run predictive models and save results to Firebase cloud database
+            Train and run predictive models with historical disease data
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Data Requirements Info
-    st.markdown("""
-    <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 10px; 
-                border-left: 4px solid #3B82F6; margin-bottom: 2rem;'>
-        <h4 style='margin: 0 0 8px 0; color: #1E40AF;'>📊 Data Requirements</h4>
-        <p style='margin: 0; color: #1F2937;'>
-            Upload a preprocessed CSV file containing: <strong>Region</strong>, <strong>outbreak_label</strong>, 
-            <strong>fever_type</strong>, and relevant feature columns.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2 = st.columns([2, 1])
+    # Pipeline Mode Selection
+    st.markdown("### 🎯 Select Pipeline Mode")
+    pipeline_mode = st.radio(
+        "Choose your workflow:",
+        ["Enhanced Pipeline (With Historical Disease Data)", "Legacy Pipeline (Basic Features)"],
+        help="Enhanced pipeline uses historical disease data for better predictions"
+    )
     
-    with col1:
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    padding: 1.5rem; border-radius: 10px; 
-                    border: 2px dashed rgba(255, 255, 255, 0.5); margin-bottom: 1rem;'>
-            <h4 style='margin: 0 0 8px 0; color: white;'>📁 Upload Data File</h4>
-            <p style='margin: 0 0 12px 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;'>
-                Select your preprocessed CSV file for ML analysis
-            </p>
-        """, unsafe_allow_html=True)
-        
-        uploaded_file = st.file_uploader("Choose CSV file", type=["csv"], 
-                                         label_visibility="collapsed",
-                                         help="Upload your preprocessed dataset for ML analysis")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+    use_enhanced = pipeline_mode.startswith("Enhanced")
     
-    with col2:
-        st.markdown("""
-        <div style='background-color: white; padding: 1.5rem; border-radius: 10px; 
-                    border: 1px solid #E5E7EB;'>
-        """, unsafe_allow_html=True)
+    if use_enhanced:
+        # Enhanced Pipeline UI
+        st.markdown("---")
+        st.markdown("### 📚 Enhanced Pipeline Workflow")
         
-        st.markdown("### ⚙️ Configuration")
-        threshold = st.slider("Stage 1 Threshold", 0.0, 1.0, 0.5, 0.01,
-                             help="Probability threshold to trigger Stage 2 classification")
-        use_xg = st.checkbox("Use XGBoost", value=False,
-                            help="Enable XGBoost for advanced classification (requires installation)")
+        workflow_tab = st.tabs(["🎓 Training", "🔮 Prediction"])
         
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    run_btn = st.button("🚀 Run ML Pipeline & Save Results", type="primary", use_container_width=True)
-
-    st.markdown("---")
-    
-    # Metadata editor with better styling
-    st.markdown("### 🗺️ Region Metadata Management")
-    st.markdown("""
-    <div style='background-color: #FFFBEB; padding: 1rem; border-radius: 8px; 
-                border-left: 4px solid #F59E0B; margin-bottom: 1rem;'>
-        <p style='margin: 0; color: #92400E; font-size: 14px;'>
-            ℹ️ Optionally add geographical metadata for better visualization and analysis.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    with st.expander("➕ Add / Update Region Metadata", expanded=False):
-        m_col1, m_col2 = st.columns(2)
-        
-        with m_col1:
-            m_region = st.text_input("Region Name", placeholder="e.g., Chennai", key="meta_region")
-            m_lat = st.text_input("Latitude", placeholder="e.g., 13.0827", key="meta_lat")
-            m_lon = st.text_input("Longitude", placeholder="e.g., 80.2707", key="meta_lon")
-        
-        with m_col2:
-            m_pop = st.text_input("Population", placeholder="e.g., 4646732", key="meta_pop")
-            m_state = st.text_input("State", placeholder="e.g., Tamil Nadu", key="meta_state")
-        
-        if st.button("💾 Save Metadata", type="primary"):
-            try:
-                lat = float(m_lat) if m_lat else None
-                lon = float(m_lon) if m_lon else None
-                pop = int(m_pop) if m_pop else None
-                state = m_state if m_state else None
+        # TRAINING TAB
+        with workflow_tab[0]:
+            st.markdown("""
+            <div style='background-color: #EFF6FF; padding: 1.5rem; border-radius: 10px; 
+                        border-left: 4px solid #3B82F6; margin-bottom: 1.5rem;'>
+                <h4 style='margin: 0 0 8px 0; color: #1E40AF;'>📊 Training Data Requirements</h4>
+                <p style='margin: 0; color: #1F2937;'>
+                    Upload CSV with historical data: <strong>State, District, Year, Month, 
+                    Dengue_Cases, Malaria_Cases, Chikungunya_Cases, Temperature, Humidity, 
+                    Rainfall, Sanitation_Score, Population_Density</strong>
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            train_file = st.file_uploader(
+                "📁 Upload Training Data (CSV)", 
+                type=["csv"],
+                key="train_file",
+                help="Historical data with disease cases for model training"
+            )
+            
+            if train_file:
+                st.success(f"✅ Loaded: {train_file.name}")
                 
-                if m_region:
-                    upsert_region_metadata(m_region, lat, lon, pop, state)
-                    st.success(f"✅ Region metadata saved for {m_region}")
+                # Preview data
+                try:
+                    preview_df = pd.read_csv(train_file)
+                    train_file.seek(0)  # Reset file pointer
+                    
+                    with st.expander("👀 Preview Training Data"):
+                        st.dataframe(preview_df.head(10), use_container_width=True)
+                        st.info(f"📊 Dataset: {len(preview_df)} rows × {len(preview_df.columns)} columns")
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
+            
+            train_btn = st.button("🎓 Train Enhanced Model", type="primary", use_container_width=True)
+            
+            if train_btn:
+                if not train_file:
+                    st.error("❌ Please upload training data first!")
                 else:
-                    st.error("❌ Region name is required")
-            except ValueError as e:
-                st.error(f"❌ Invalid input: {str(e)}")
-            except Exception as e:
-                st.error(f"❌ Failed to save metadata: {e}")
+                    tmp_train_path = "tmp_training_data.csv"
+                    with open(tmp_train_path, "wb") as f:
+                        f.write(train_file.getbuffer())
+                    
+                    with st.spinner("🔄 Training models... This may take a few minutes..."):
+                        try:
+                            # Train the enhanced model
+                            predictor = prediction_enhanced.run_enhanced_pipeline_train(
+                                training_csv=tmp_train_path,
+                                models_dir="models_enhanced"
+                            )
+                            
+                            st.success("✅ Model training completed successfully!")
+                            st.balloons()
+                            
+                            st.info("💡 Models saved to `models_enhanced/` directory. You can now make predictions!")
+                            
+                        except Exception as e:
+                            st.error(f"❌ Training failed: {e}")
+                            import traceback
+                            with st.expander("🔍 View Error Details"):
+                                st.code(traceback.format_exc())
+        
+        # PREDICTION TAB
+        with workflow_tab[1]:
+            st.markdown("""
+            <div style='background-color: #F0FDF4; padding: 1.5rem; border-radius: 10px; 
+                        border-left: 4px solid #10B981; margin-bottom: 1.5rem;'>
+                <h4 style='margin: 0 0 8px 0; color: #065F46;'>🔮 Prediction Data Requirements</h4>
+                <p style='margin: 0; color: #1F2937;'>
+                    Upload CSV with environmental data: <strong>State, District, Year, Month, 
+                    Temperature, Humidity, Rainfall, Sanitation_Score, Population_Density</strong>
+                    <br/><em style='color: #059669;'>Note: No disease case data needed for prediction!</em>
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            pred_file = st.file_uploader(
+                "📁 Upload Prediction Data (CSV)", 
+                type=["csv"],
+                key="pred_file",
+                help="Environmental and infrastructure data for outbreak prediction"
+            )
+            
+            if pred_file:
+                st.success(f"✅ Loaded: {pred_file.name}")
+                
+                # Preview data
+                try:
+                    preview_df = pd.read_csv(pred_file)
+                    pred_file.seek(0)  # Reset file pointer
+                    
+                    with st.expander("👀 Preview Prediction Data"):
+                        st.dataframe(preview_df.head(10), use_container_width=True)
+                        st.info(f"📊 Dataset: {len(preview_df)} rows × {len(preview_df.columns)} columns")
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
+            
+            pred_btn = st.button("🔮 Generate Predictions & Save to Firebase", 
+                               type="primary", use_container_width=True)
+            
+            if pred_btn:
+                if not pred_file:
+                    st.error("❌ Please upload prediction data first!")
+                else:
+                    # Check if models exist
+                    if not os.path.exists("models_enhanced/severity_model.pkl"):
+                        st.error("❌ No trained models found! Please train the model first in the Training tab.")
+                    else:
+                        tmp_pred_path = "tmp_prediction_data.csv"
+                        with open(tmp_pred_path, "wb") as f:
+                            f.write(pred_file.getbuffer())
+                        
+                        with st.spinner("🔄 Generating predictions..."):
+                            progress_bar = st.progress(0)
+                            status_text = st.empty()
+                            
+                            try:
+                                status_text.text("📊 Loading models...")
+                                progress_bar.progress(20)
+                                
+                                status_text.text("🤖 Making predictions...")
+                                progress_bar.progress(50)
+                                
+                                # Make predictions
+                                results_df = prediction_enhanced.run_enhanced_pipeline_predict(
+                                    prediction_csv=tmp_pred_path,
+                                    models_dir="models_enhanced",
+                                    output_path="outputs/predictions_enhanced.csv"
+                                )
+                                
+                                status_text.text("💾 Saving to Firebase...")
+                                progress_bar.progress(75)
+                                
+                                # Save to Firebase
+                                ts = datetime.now(timezone.utc).isoformat()
+                                
+                                # Format for Firebase (match existing schema)
+                                firebase_df = pd.DataFrame({
+                                    'Region': results_df['District'],  # Use District as Region
+                                    'P_Outbreak': results_df['Outbreak_Probability'],
+                                    'Fever_Type': ['Predicted' for _ in range(len(results_df))],  # Placeholder
+                                    'P_Type': results_df['Outbreak_Probability'],  # Same as outbreak prob
+                                    'Severity_Index': results_df['Predicted_Severity_Index']
+                                })
+                                
+                                save_predictions(firebase_df, ts)
+                                
+                                # Auto-geocode and save pharma stocks
+                                status_text.text("🌍 Geocoding regions...")
+                                progress_bar.progress(85)
+                                
+                                for idx, row in results_df.iterrows():
+                                    region = row['District']
+                                    
+                                    # Check if metadata exists
+                                    metadata = get_region_metadata(region)
+                                    if not metadata or not metadata.get('lat'):
+                                        # Try to geocode
+                                        coords = geocode_city(region)
+                                        if coords:
+                                            lat, lon, state, pop = coords
+                                            upsert_region_metadata(region, lat, lon, pop, state)
+                                            time.sleep(0.5)  # Rate limit
+                                    
+                                    # Calculate pharma stock
+                                    pop = metadata.get('population', 1000000) if metadata else 1000000
+                                    sev = float(row['Predicted_Severity_Index'])
+                                    base = max(50, int(pop * sev * 0.001))
+                                    
+                                    upsert_pharma_stock(
+                                        region=region,
+                                        paracetamol=base,
+                                        ors=int(base * 0.8),
+                                        antibiotics=int(base * 0.6),
+                                        iv_fluids=int(base * 0.3),
+                                        timestamp=ts
+                                    )
+                                
+                                progress_bar.progress(100)
+                                status_text.empty()
+                                progress_bar.empty()
+                                
+                                st.success("✅ Predictions saved to Firebase successfully!")
+                                
+                                # Display results
+                                st.markdown("### 📊 Prediction Results")
+                                
+                                # Summary metrics
+                                m1, m2, m3, m4 = st.columns(4)
+                                m1.metric("Total Districts", len(results_df))
+                                m2.metric("High Risk", sum(results_df['Outbreak_Risk'] == 'High'))
+                                m3.metric("Avg Severity", f"{results_df['Predicted_Severity_Index'].mean():.3f}")
+                                m4.metric("Avg Outbreak Prob", f"{results_df['Outbreak_Probability'].mean():.3f}")
+                                
+                                # Results table
+                                st.dataframe(
+                                    results_df.style.background_gradient(
+                                        subset=['Predicted_Severity_Index', 'Outbreak_Probability'], 
+                                        cmap='RdYlGn_r'
+                                    ).format({
+                                        'Predicted_Severity_Index': '{:.3f}',
+                                        'Outbreak_Probability': '{:.3f}'
+                                    }),
+                                    use_container_width=True,
+                                    height=400
+                                )
+                                
+                            except Exception as e:
+                                st.error(f"❌ Prediction failed: {e}")
+                                import traceback
+                                with st.expander("🔍 View Error Details"):
+                                    st.code(traceback.format_exc())
     
-    # Add Re-Geocode button for missing coordinates
-    with st.expander("🔄 Re-Geocode Regions Without Coordinates", expanded=False):
+    else:
+        # Legacy Pipeline UI (Original)
         st.markdown("""
-        <div style='background-color: #FEF3C7; padding: 1rem; border-radius: 8px; 
-                    border-left: 4px solid #F59E0B; margin-bottom: 1rem;'>
-            <p style='margin: 0; color: #92400E; font-size: 14px;'>
-                ⚠️ Use this if some regions are missing from the map. This will attempt to geocode 
-                all regions that don't have coordinates yet.
+        <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 10px; 
+                    border-left: 4px solid #3B82F6; margin-bottom: 2rem;'>
+            <h4 style='margin: 0 0 8px 0; color: #1E40AF;'>📊 Data Requirements</h4>
+            <p style='margin: 0; color: #1F2937;'>
+                Upload a preprocessed CSV file containing: <strong>Region</strong>, <strong>outbreak_label</strong>, 
+                <strong>fever_type</strong>, and relevant feature columns.
             </p>
         </div>
         """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns([2, 1])
         
-        if st.button("🌍 Geocode Missing Regions", type="secondary"):
-            df_all = fetch_all_predictions()
-            if not df_all.empty:
-                regions_to_geocode = []
-                for region in df_all['region'].unique():
-                    metadata = get_region_metadata(region)
-                    if not metadata or not metadata.get('lat') or not metadata.get('lon'):
-                        regions_to_geocode.append(region)
-                
-                if regions_to_geocode:
-                    st.info(f"Found {len(regions_to_geocode)} regions without coordinates: {', '.join(regions_to_geocode)}")
-                    
-                    progress = st.progress(0)
-                    status = st.empty()
-                    success_count = 0
-                    
-                    for idx, region in enumerate(regions_to_geocode):
-                        progress.progress((idx + 1) / len(regions_to_geocode))
-                        status.text(f"Geocoding {region}... ({idx + 1}/{len(regions_to_geocode)})")
-                        
-                        coords = geocode_city(region)
-                        if coords:
-                            lat, lon, state, pop = coords
-                            upsert_region_metadata(region, lat, lon, pop, state)
-                            success_count += 1
-                            st.success(f"✓ Geocoded {region}")
-                        else:
-                            st.error(f"✗ Failed to geocode {region}")
-                        
-                        time.sleep(1)  # Respect API limits
-                    
-                    progress.empty()
-                    status.empty()
-                    st.success(f"✅ Successfully geocoded {success_count}/{len(regions_to_geocode)} regions!")
-                else:
-                    st.info("✓ All regions already have coordinates!")
-            else:
-                st.warning("No prediction data found. Run the ML pipeline first.")
+        with col1:
+            st.markdown("""
+            <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        padding: 1.5rem; border-radius: 10px; 
+                        border: 2px dashed rgba(255, 255, 255, 0.5); margin-bottom: 1rem;'>
+                <h4 style='margin: 0 0 8px 0; color: white;'>📁 Upload Data File</h4>
+                <p style='margin: 0 0 12px 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;'>
+                    Select your preprocessed CSV file for ML analysis
+                </p>
+            """, unsafe_allow_html=True)
+            
+            uploaded_file = st.file_uploader("Choose CSV file", type=["csv"], 
+                                             label_visibility="collapsed",
+                                             help="Upload your preprocessed dataset for ML analysis")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div style='background-color: white; padding: 1.5rem; border-radius: 10px; 
+                        border: 1px solid #E5E7EB;'>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("### ⚙️ Configuration")
+            threshold = st.slider("Stage 1 Threshold", 0.0, 1.0, 0.5, 0.01,
+                                 help="Probability threshold to trigger Stage 2 classification")
+            use_xg = st.checkbox("Use XGBoost", value=False,
+                                help="Enable XGBoost for advanced classification (requires installation)")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        run_btn = st.button("🚀 Run ML Pipeline & Save Results", type="primary", use_container_width=True)
 
-    if run_btn:
-        if uploaded_file is None:
-            st.error("❌ Please upload the preprocessed CSV file first.")
-        else:
-            tmp_path = "tmp_input_for_ml.csv"
-            with open(tmp_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+        st.markdown("---")
+        
+        # Metadata editor with better styling
+        st.markdown("### 🗺️ Region Metadata Management")
+        st.markdown("""
+        <div style='background-color: #FFFBEB; padding: 1rem; border-radius: 8px; 
+                    border-left: 4px solid #F59E0B; margin-bottom: 1rem;'>
+            <p style='margin: 0; color: #92400E; font-size: 14px;'>
+                ℹ️ Optionally add geographical metadata for better visualization and analysis.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-            with st.spinner("🔄 Running ML pipeline... This may take some time..."):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
+        with st.expander("➕ Add / Update Region Metadata", expanded=False):
+            m_col1, m_col2 = st.columns(2)
+            
+            with m_col1:
+                m_region = st.text_input("Region Name", placeholder="e.g., Chennai", key="meta_region")
+                m_lat = st.text_input("Latitude", placeholder="e.g., 13.0827", key="meta_lat")
+                m_lon = st.text_input("Longitude", placeholder="e.g., 80.2707", key="meta_lon")
+            
+            with m_col2:
+                m_pop = st.text_input("Population", placeholder="e.g., 4646732", key="meta_pop")
+                m_state = st.text_input("State", placeholder="e.g., Tamil Nadu", key="meta_state")
+            
+            if st.button("💾 Save Metadata", type="primary"):
                 try:
-                    status_text.text("⚙️ Loading data...")
-                    progress_bar.progress(20)
+                    lat = float(m_lat) if m_lat else None
+                    lon = float(m_lon) if m_lon else None
+                    pop = int(m_pop) if m_pop else None
+                    state = m_state if m_state else None
                     
-                    status_text.text("🤖 Training Stage 1 model (Outbreak Detection)...")
-                    progress_bar.progress(40)
+                    if m_region:
+                        upsert_region_metadata(m_region, lat, lon, pop, state)
+                        st.success(f"✅ Region metadata saved for {m_region}")
+                    else:
+                        st.error("❌ Region name is required")
+                except ValueError as e:
+                    st.error(f"❌ Invalid input: {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ Failed to save metadata: {e}")
+        
+        # Add Re-Geocode button for missing coordinates
+        with st.expander("🔄 Re-Geocode Regions Without Coordinates", expanded=False):
+            st.markdown("""
+            <div style='background-color: #FEF3C7; padding: 1rem; border-radius: 8px; 
+                        border-left: 4px solid #F59E0B; margin-bottom: 1rem;'>
+                <p style='margin: 0; color: #92400E; font-size: 14px;'>
+                    ⚠️ Use this if some regions are missing from the map. This will attempt to geocode 
+                    all regions that don't have coordinates yet.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("🌍 Geocode Missing Regions", type="secondary"):
+                df_all = fetch_all_predictions()
+                if not df_all.empty:
+                    regions_to_geocode = []
+                    for region in df_all['region'].unique():
+                        metadata = get_region_metadata(region)
+                        if not metadata or not metadata.get('lat') or not metadata.get('lon'):
+                            regions_to_geocode.append(region)
                     
-                    status_text.text("🧠 Training Stage 2 model (Fever Classification)...")
-                    progress_bar.progress(60)
-                    
-                    # call your provided pipeline wrapper
-                    df_pred = prediction.run_pipeline_and_return(
-                        input_csv=tmp_path,
-                        models_dir="models",
-                        output_dir="outputs",
-                        threshold=threshold,
-                        use_xgboost=use_xg
-                    )
-                    
-                    status_text.text("💾 Saving predictions to Firebase...")
-                    progress_bar.progress(80)
-
-                    # Save raw predictions CSV for reference
-                    ts = datetime.now(timezone.utc).isoformat()
-                    # normalize columns for save_predictions
-                    save_df = df_pred.rename(columns={
-                        "Region": "Region",
-                        "P_Outbreak": "P_Outbreak",
-                        "Fever_Type": "Fever_Type",
-                        "P_Type": "P_Type",
-                        "Severity_Index": "Severity_Index"
-                    })
-                    # ensure types are correct then save to Firestore
-                    save_predictions(save_df, ts)
-
-                    # Geocode and save metadata for each region dynamically
-                    status_text.text("🌍 Geocoding regions and saving metadata...")
-                    unique_regions = save_df["Region"].unique()
-                    geocode_progress = st.progress(0)
-                    geocode_status = st.empty()
-                    
-                    geocoded_count = 0
-                    skipped_count = 0
-                    failed_regions = []
-                    
-                    for idx, region in enumerate(unique_regions):
-                        geocode_progress.progress((idx + 1) / len(unique_regions))
-                        geocode_status.text(f"Processing {region}... ({idx + 1}/{len(unique_regions)})")
+                    if regions_to_geocode:
+                        st.info(f"Found {len(regions_to_geocode)} regions without coordinates: {', '.join(regions_to_geocode)}")
                         
-                        # Check if metadata already exists
-                        existing_metadata = get_region_metadata(region)
+                        progress = st.progress(0)
+                        status = st.empty()
+                        success_count = 0
                         
-                        if existing_metadata and existing_metadata.get('lat') and existing_metadata.get('lon'):
-                            # Use existing metadata
-                            pop = existing_metadata.get('population', 1_000_000)
-                            skipped_count += 1
-                            st.info(f"♻️ {region}: Using cached coordinates")
-                        else:
-                            # Try to geocode the city
+                        for idx, region in enumerate(regions_to_geocode):
+                            progress.progress((idx + 1) / len(regions_to_geocode))
+                            status.text(f"Geocoding {region}... ({idx + 1}/{len(regions_to_geocode)})")
+                            
                             coords = geocode_city(region)
                             if coords:
-                                lat, lon, state, pop_estimate = coords
-                                upsert_region_metadata(region, lat, lon, pop_estimate, state)
-                                pop = pop_estimate
-                                geocoded_count += 1
-                                st.success(f"✓ {region}: Geocoded successfully")
+                                lat, lon, state, pop = coords
+                                upsert_region_metadata(region, lat, lon, pop, state)
+                                success_count += 1
+                                st.success(f"✓ Geocoded {region}")
                             else:
-                                # If geocoding fails, still save the region without coordinates
-                                failed_regions.append(region)
-                                st.warning(f"⚠️ {region}: Could not geocode - skipping map display")
-                                upsert_region_metadata(region, None, None, 1_000_000, "Unknown")
-                                pop = 1_000_000
+                                st.error(f"✗ Failed to geocode {region}")
+                            
+                            time.sleep(1)  # Respect API limits
                         
-                        # Compute pharma stock suggestion heuristic
-                        region_data = save_df[save_df["Region"] == region].iloc[0]
-                        sev = float(region_data["Severity_Index"])
-                        base = max(50, int(pop * sev * 0.001))
-                        paracetamol = base
-                        ors = int(base * 0.8)
-                        antibiotics = int(base * 0.6)
-                        iv_fluids = int(base * 0.3)
-                        upsert_pharma_stock(region, paracetamol, ors, antibiotics, iv_fluids, ts)
-                        
-                        # Small delay to respect API rate limits (only if we geocoded)
-                        if not existing_metadata or not existing_metadata.get('lat'):
-                            time.sleep(0.5)
-                    
-                    geocode_progress.empty()
-                    geocode_status.empty()
-                    progress_bar.progress(100)
-                    status_text.empty()
-                    progress_bar.empty()
+                        progress.empty()
+                        status.empty()
+                        st.success(f"✅ Successfully geocoded {success_count}/{len(regions_to_geocode)} regions!")
+                    else:
+                        st.info("✓ All regions already have coordinates!")
+                else:
+                    st.warning("No prediction data found. Run the ML pipeline first.")
 
-                    st.success("✅ ML pipeline completed successfully and results saved to Firebase!")
+        if run_btn:
+            if uploaded_file is None:
+                st.error("❌ Please upload the preprocessed CSV file first.")
+            else:
+                tmp_path = "tmp_input_for_ml.csv"
+                with open(tmp_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                with st.spinner("🔄 Running ML pipeline... This may take some time..."):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
                     
-                    # Show geocoding statistics
-                    st.markdown("### 📍 Geocoding Summary")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Newly Geocoded", geocoded_count)
-                    col2.metric("Cached (Reused)", skipped_count)
-                    col3.metric("Failed", len(failed_regions))
-                    
-                    if failed_regions:
-                        st.error(f"⚠️ Could not geocode: {', '.join(failed_regions)}")
-                        st.info("💡 Tip: Use the 'Re-Geocode Regions Without Coordinates' tool above to retry failed regions.")
-                    
-                    # Display results in a professional table
-                    st.markdown("### 📊 Prediction Results")
-                    
-                    # Add summary metrics
-                    m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Total Regions", len(save_df))
-                    m2.metric("High Risk", len(save_df[save_df["Severity_Index"] >= 0.4]))
-                    m3.metric("Avg Severity", f"{save_df['Severity_Index'].mean():.3f}")
-                    m4.metric("Outbreak Alert", len(save_df[save_df["P_Outbreak"] >= 0.5]))
-                    
-                    st.dataframe(
-                        save_df.style.background_gradient(subset=['Severity_Index'], cmap='RdYlGn_r')
-                                    .format({
-                                        'P_Outbreak': '{:.3f}',
-                                        'P_Type': '{:.3f}',
-                                        'Severity_Index': '{:.3f}'
-                                    }),
-                        use_container_width=True,
-                        height=400
-                    )
-                    
-                except Exception as e:
-                    st.error(f"❌ ML pipeline failed: {e}")
-                    import traceback
-                    with st.expander("🔍 View Error Details"):
-                        st.code(traceback.format_exc())
+                    try:
+                        status_text.text("⚙️ Loading data...")
+                        progress_bar.progress(20)
+                        
+                        status_text.text("🤖 Training Stage 1 model (Outbreak Detection)...")
+                        progress_bar.progress(40)
+                        
+                        status_text.text("🧠 Training Stage 2 model (Fever Classification)...")
+                        progress_bar.progress(60)
+                        
+                        # call your provided pipeline wrapper
+                        df_pred = prediction.run_pipeline_and_return(
+                            input_csv=tmp_path,
+                            models_dir="models",
+                            output_dir="outputs",
+                            threshold=threshold,
+                            use_xgboost=use_xg
+                        )
+                        
+                        status_text.text("💾 Saving predictions to Firebase...")
+                        progress_bar.progress(80)
+
+                        # Save raw predictions CSV for reference
+                        ts = datetime.now(timezone.utc).isoformat()
+                        # normalize columns for save_predictions
+                        save_df = df_pred.rename(columns={
+                            "Region": "Region",
+                            "P_Outbreak": "P_Outbreak",
+                            "Fever_Type": "Fever_Type",
+                            "P_Type": "P_Type",
+                            "Severity_Index": "Severity_Index"
+                        })
+                        # ensure types are correct then save to Firestore
+                        save_predictions(save_df, ts)
+
+                        # Geocode and save metadata for each region dynamically
+                        status_text.text("🌍 Geocoding regions and saving metadata...")
+                        unique_regions = save_df["Region"].unique()
+                        geocode_progress = st.progress(0)
+                        geocode_status = st.empty()
+                        
+                        geocoded_count = 0
+                        skipped_count = 0
+                        failed_regions = []
+                        
+                        for idx, region in enumerate(unique_regions):
+                            geocode_progress.progress((idx + 1) / len(unique_regions))
+                            geocode_status.text(f"Processing {region}... ({idx + 1}/{len(unique_regions)})")
+                            
+                            # Check if metadata already exists
+                            existing_metadata = get_region_metadata(region)
+                            
+                            if existing_metadata and existing_metadata.get('lat') and existing_metadata.get('lon'):
+                                # Use existing metadata
+                                pop = existing_metadata.get('population', 1_000_000)
+                                skipped_count += 1
+                                st.info(f"♻️ {region}: Using cached coordinates")
+                            else:
+                                # Try to geocode the city
+                                coords = geocode_city(region)
+                                if coords:
+                                    lat, lon, state, pop_estimate = coords
+                                    upsert_region_metadata(region, lat, lon, pop_estimate, state)
+                                    pop = pop_estimate
+                                    geocoded_count += 1
+                                    st.success(f"✓ {region}: Geocoded successfully")
+                                else:
+                                    # If geocoding fails, still save the region without coordinates
+                                    failed_regions.append(region)
+                                    st.warning(f"⚠️ {region}: Could not geocode - skipping map display")
+                                    upsert_region_metadata(region, None, None, 1_000_000, "Unknown")
+                                    pop = 1_000_000
+                            
+                            # Compute pharma stock suggestion heuristic
+                            region_data = save_df[save_df["Region"] == region].iloc[0]
+                            sev = float(region_data["Severity_Index"])
+                            base = max(50, int(pop * sev * 0.001))
+                            paracetamol = base
+                            ors = int(base * 0.8)
+                            antibiotics = int(base * 0.6)
+                            iv_fluids = int(base * 0.3)
+                            upsert_pharma_stock(region, paracetamol, ors, antibiotics, iv_fluids, ts)
+                            
+                            # Small delay to respect API rate limits (only if we geocoded)
+                            if not existing_metadata or not existing_metadata.get('lat'):
+                                time.sleep(0.5)
+                        
+                        geocode_progress.empty()
+                        geocode_status.empty()
+                        progress_bar.progress(100)
+                        status_text.empty()
+                        progress_bar.empty()
+
+                        st.success("✅ ML pipeline completed successfully and results saved to Firebase!")
+                        
+                        # Show geocoding statistics
+                        st.markdown("### 📍 Geocoding Summary")
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Newly Geocoded", geocoded_count)
+                        col2.metric("Cached (Reused)", skipped_count)
+                        col3.metric("Failed", len(failed_regions))
+                        
+                        if failed_regions:
+                            st.error(f"⚠️ Could not geocode: {', '.join(failed_regions)}")
+                            st.info("💡 Tip: Use the 'Re-Geocode Regions Without Coordinates' tool above to retry failed regions.")
+                        
+                        # Display results in a professional table
+                        st.markdown("### 📊 Prediction Results")
+                        
+                        # Add summary metrics
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Total Regions", len(save_df))
+                        m2.metric("High Risk", len(save_df[save_df["Severity_Index"] >= 0.4]))
+                        m3.metric("Avg Severity", f"{save_df['Severity_Index'].mean():.3f}")
+                        m4.metric("Outbreak Alert", len(save_df[save_df["P_Outbreak"] >= 0.5]))
+                        
+                        st.dataframe(
+                            save_df.style.background_gradient(subset=['Severity_Index'], cmap='RdYlGn_r')
+                                        .format({
+                                            'P_Outbreak': '{:.3f}',
+                                            'P_Type': '{:.3f}',
+                                            'Severity_Index': '{:.3f}'
+                                        }),
+                            use_container_width=True,
+                            height=400
+                        )
+                        
+                    except Exception as e:
+                        st.error(f"❌ ML pipeline failed: {e}")
+                        import traceback
+                        with st.expander("🔍 View Error Details"):
+                            st.code(traceback.format_exc())
     
     # Stop rendering here - don't show dashboard tabs when ML Pipeline is active
     st.stop()

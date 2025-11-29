@@ -1,0 +1,49 @@
+State,District,Year,Month,Dengue_Cases,Malaria_Cases,Chikungunya_Cases,Temperature,Humidity,Rainfall,Sanitation_Score,Population_Density
+Karnataka,Bengaluru,2022,1,150,80,20,25.3,65,12.5,0.85,4000
+Karnataka,Bengaluru,2022,2,180,90,25,27.1,70,8.3,0.85,4000
+Karnataka,Bengaluru,2022,3,220,110,35,28.5,72,5.0,0.85,4000
+Karnataka,Bengaluru,2022,4,280,95,45,29.8,68,15.2,0.85,4000
+Karnataka,Bengaluru,2022,5,320,70,55,28.2,75,85.6,0.85,4000
+Karnataka,Bengaluru,2022,6,280,60,40,26.5,80,125.3,0.85,4000
+Karnataka,Mysuru,2022,1,80,120,10,24.8,68,15.2,0.75,2500
+Karnataka,Mysuru,2022,2,95,140,15,26.2,72,10.5,0.75,2500
+Karnataka,Mysuru,2022,3,110,150,20,27.5,75,8.0,0.75,2500
+Karnataka,Mysuru,2022,4,130,130,25,29.0,70,18.5,0.75,2500
+Karnataka,Mysuru,2022,5,150,100,30,27.8,78,92.3,0.75,2500
+Karnataka,Mysuru,2022,6,120,85,25,26.0,82,130.5,0.75,2500
+Tamil Nadu,Chennai,2022,1,200,60,30,28.5,75,45.0,0.80,6000
+Tamil Nadu,Chennai,2022,2,250,70,40,29.2,78,38.2,0.80,6000
+Tamil Nadu,Chennai,2022,3,300,80,55,30.5,80,25.0,0.80,6000
+Tamil Nadu,Chennai,2022,4,350,75,65,31.8,82,35.5,0.80,6000
+Tamil Nadu,Chennai,2022,5,380,65,70,32.2,85,58.2,0.80,6000
+Tamil Nadu,Chennai,2022,6,320,55,60,30.5,88,95.8,0.80,6000
+Tamil Nadu,Coimbatore,2022,1,120,90,15,26.5,70,32.5,0.78,3500
+Tamil Nadu,Coimbatore,2022,2,145,105,20,27.8,72,28.0,0.78,3500
+Tamil Nadu,Coimbatore,2022,3,170,115,28,29.2,75,20.5,0.78,3500
+Tamil Nadu,Coimbatore,2022,4,200,110,35,30.5,78,42.0,0.78,3500
+Tamil Nadu,Coimbatore,2022,5,220,95,40,29.8,82,72.5,0.78,3500
+Tamil Nadu,Coimbatore,2022,6,180,80,32,28.5,85,105.2,0.78,3500
+Maharashtra,Mumbai,2022,1,180,50,25,27.5,72,15.8,0.82,8000
+Maharashtra,Mumbai,2022,2,210,60,32,28.8,75,12.5,0.82,8000
+Maharashtra,Mumbai,2022,3,250,70,42,30.2,78,8.2,0.82,8000
+Maharashtra,Mumbai,2022,4,290,65,50,31.5,80,5.5,0.82,8000
+Maharashtra,Mumbai,2022,5,330,55,58,31.0,85,125.8,0.82,8000
+Maharashtra,Mumbai,2022,6,280,45,48,29.5,88,385.5,0.82,8000
+Maharashtra,Pune,2022,1,100,70,12,24.5,68,18.5,0.80,5500
+Maharashtra,Pune,2022,2,120,85,18,26.0,70,15.2,0.80,5500
+Maharashtra,Pune,2022,3,145,95,25,28.5,72,12.0,0.80,5500
+Maharashtra,Pune,2022,4,170,88,32,30.0,75,8.5,0.80,5500
+Maharashtra,Pune,2022,5,195,75,38,29.2,80,85.2,0.80,5500
+Maharashtra,Pune,2022,6,160,65,30,27.5,82,225.5,0.80,5500
+Kerala,Kochi,2022,1,90,110,8,27.5,78,25.5,0.88,3800
+Kerala,Kochi,2022,2,105,125,12,28.2,80,22.0,0.88,3800
+Kerala,Kochi,3,115,135,15,29.0,82,18.5,0.88,3800
+Kerala,Kochi,2022,4,130,140,20,29.8,85,35.2,0.88,3800
+Kerala,Kochi,2022,5,140,130,22,29.5,88,145.8,0.88,3800
+Kerala,Kochi,2022,6,125,115,18,28.8,90,285.5,0.88,3800
+West Bengal,Kolkata,2022,1,160,140,22,25.5,75,15.2,0.72,7200
+West Bengal,Kolkata,2022,2,190,160,28,27.8,78,18.5,0.72,7200
+West Bengal,Kolkata,2022,3,230,175,38,29.5,80,25.0,0.72,7200
+West Bengal,Kolkata,2022,4,270,180,45,31.2,82,45.8,0.72,7200
+West Bengal,Kolkata,2022,5,310,170,52,32.0,85,125.5,0.72,7200
+West Bengal,Kolkata,2022,6,280,150,48,30.5,88,285.2,0.72,7200
